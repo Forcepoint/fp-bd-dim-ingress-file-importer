@@ -1,0 +1,3 @@
+https://raw.githubusercontent.com/hectorm/hmirror/master/data/malwaredomains.com-justdomains/list.txt
+https://raw.githubusercontent.com/hectorm/hmirror/master/data/mitchellkrogza-badd-boyz-hosts/list.txt
+https://raw.githubusercontent.com/hectorm/hmirror/master/data/matomo.org-spammers/list.txt

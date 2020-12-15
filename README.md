@@ -1,0 +1,2 @@
+# File importer Module for DIM
+### This module accepts text files with one record per line. An example of one of those files can be seen [here](https://raw.githubusercontent.com/hectorm/hmirror/master/data/adaway.org/list.txt)
