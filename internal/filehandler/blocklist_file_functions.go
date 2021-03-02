@@ -8,13 +8,19 @@ import (
 	"io"
 	"io/ioutil"
 	"mime/multipart"
-	"net"
 	"net/http"
-	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 )
+
+const WindowsLineBreak = "\r\n"
+const UnixLineBreak = "\n"
+
+var ipRegex = regexp.MustCompile("^\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b$")
+var urlRegex = regexp.MustCompile("^(http(s)?://)?(www\\.)?([-a-zA-Z0-9@:%_+~#=]{2,256}\\.[a-z]{2,256}\\b([-a-zA-Z0-9@:%_+~#?&/=]*))+(\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%_+~#?&/=]*))?$")
+var domainRegex = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\\.[a-zA-Z]{2,}$")
 
 type FileHandler interface {
 	RunPeriodicUpdater()
@@ -50,7 +56,7 @@ func (l *listFileHandler) RunPeriodicUpdater() {
 	}
 
 	// Iterate over urls in url file
-	for _, line := range strings.Split(string(urlFile), "\n") {
+	for _, line := range strings.Split(strings.ReplaceAll(string(urlFile), WindowsLineBreak, UnixLineBreak), UnixLineBreak) {
 		if line == "" {
 			continue
 		}
@@ -86,7 +92,7 @@ func (l *listFileHandler) HandleUploadedFile(header multipart.File) error {
 		return err
 	}
 
-	fileLines := sanitiseLines(strings.Split(string(data), "\n"))
+	fileLines := sanitiseLines(strings.Split(strings.ReplaceAll(string(data), WindowsLineBreak, UnixLineBreak), UnixLineBreak))
 
 	// Compare temp file to local blocklist
 	diff := l.differ.DiffFiles(l.FileDirectory+l.BlocklistFilename, fileLines)
@@ -112,7 +118,7 @@ func ProcessTextFile(elements []string) (*io.ReadCloser, int, error) {
 	wrapper := structs.ProcessedItemsWrapper{}
 
 	svcName := os.Getenv("MODULE_SVC_NAME")
-	source := "Forcepoint File Importer"
+	source := "Generic Data Importer"
 
 	for _, element := range elements {
 		if element == "" {
@@ -128,15 +134,14 @@ func ProcessTextFile(elements []string) (*io.ReadCloser, int, error) {
 		item.ServiceName = svcName
 		item.Source = source
 
-		if IsIP(element) {
+		if isIP(element) {
 			item.Type = "IP"
+		} else if isDomain(element) {
+			item.Type = "DOMAIN"
+		} else if isUrl(element) {
+			item.Type = "URL"
 		} else {
-			val, err := isUrlOrDomain(element)
-			if err != nil {
-				logrus.Error(err)
-				continue
-			}
-			item.Type = val
+			continue
 		}
 
 		item.Value = element
@@ -148,18 +153,16 @@ func ProcessTextFile(elements []string) (*io.ReadCloser, int, error) {
 	return internal.PushDataToController(wrapper)
 }
 
-func IsIP(host string) bool {
-	return net.ParseIP(host) != nil
+func isIP(val string) bool {
+	return ipRegex.MatchString(val)
 }
 
-func isUrlOrDomain(toTest string) (string, error) {
-	_, err := url.ParseRequestURI(toTest)
+func isDomain(val string) bool {
+	return domainRegex.MatchString(val)
+}
 
-	if err != nil {
-		return "DOMAIN", nil
-	}
-
-	return "URL", nil
+func isUrl(val string) bool {
+	return urlRegex.MatchString(val)
 }
 
 func writeToLocalFile(mu *sync.Mutex, filename string, dataToWrite []string) error {
