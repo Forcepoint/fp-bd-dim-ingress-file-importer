@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/go-co-op/gocron v0.3.0
+	github.com/google/gonids v0.0.0-20210610024241-e364db365f50 // indirect
 	github.com/gorilla/mux v1.7.4
 	github.com/sergi/go-diff v1.1.0
 	github.com/sirupsen/logrus v1.2.0

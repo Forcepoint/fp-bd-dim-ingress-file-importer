@@ -91,7 +91,7 @@ func GetConfig() (config structs.ModuleConfig) {
 			Label:            "Elements Imported",
 			Type:             structs.Info,
 			ExpectedJsonName: "",
-			Rationale:        "IP Addresses\n IP Ranges\n URLs\n Domains.",
+			Rationale:        "IP Addresses\n IP Ranges\n URLs\n Domains \n Snort Rules.",
 			Value:            "",
 			PossibleValues:   nil,
 			Required:         false,

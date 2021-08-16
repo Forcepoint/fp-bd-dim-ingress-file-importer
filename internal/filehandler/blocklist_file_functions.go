@@ -2,6 +2,7 @@ package filehandler
 
 import (
 	"bufio"
+	"github.com/google/gonids"
 	"fp-dim-aws-guard-duty-ingress/internal"
 	"fp-dim-aws-guard-duty-ingress/internal/structs"
 	"github.com/sirupsen/logrus"
@@ -21,6 +22,7 @@ const UnixLineBreak = "\n"
 var ipRegex = regexp.MustCompile("^\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b$")
 var urlRegex = regexp.MustCompile("^(http(s)?://)?(www\\.)?([-a-zA-Z0-9@:%_+~#=]{2,256}\\.[a-z]{2,256}\\b([-a-zA-Z0-9@:%_+~#?&/=]*))+(\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%_+~#?&/=]*))?$")
 var domainRegex = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\\.[a-zA-Z]{2,}$")
+var snortRegexIgnoringRuleOptions = regexp.MustCompile("\\([^)]*\\)")
 
 type FileHandler interface {
 	RunPeriodicUpdater()
@@ -140,6 +142,8 @@ func ProcessTextFile(elements []string) (*io.ReadCloser, int, error) {
 			item.Type = "DOMAIN"
 		} else if isUrl(element) {
 			item.Type = "URL"
+		} else if isSnort(element) {
+			item.Type = "SNORT"
 		} else {
 			continue
 		}
@@ -163,6 +167,14 @@ func isDomain(val string) bool {
 
 func isUrl(val string) bool {
 	return urlRegex.MatchString(val)
+}
+
+func isSnort(val string) bool {
+	_, err := gonids.ParseRule(snortRegexIgnoringRuleOptions.ReplaceAllString(val, "()"))
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 func writeToLocalFile(mu *sync.Mutex, filename string, dataToWrite []string) error {
